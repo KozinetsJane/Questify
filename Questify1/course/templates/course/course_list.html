@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1/0">
+        <title>Список доступных курсов</title> 
+    </head>
+    <body>
+        <h1>Список доступных курсов</h1>
+        <ul>
+            {% for course in course %}
+            <li><strong>{{ course.title }}</strong> - {{course.description}} {{ course.published }}</li>
+            {% endfor %}
+        </ul>
+
+    </body>
+</html>
