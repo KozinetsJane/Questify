@@ -3,7 +3,7 @@ from django.utils import timezone
 
 
 class Course(models.Model):
-    title = models.CharField(max_length=200, verbose_name="Название")
+    title = models.CharField(max_length=200, verbose_name="Название", help_text="Название курса")
     description = models.TextField(null=True, verbose_name="Описание", blank=True)
     price = models.FloatField(null=True, verbose_name="Цена", blank=True)
     published = models.DateTimeField(db_index=True, verbose_name="Опубликовано", default=timezone.now)
