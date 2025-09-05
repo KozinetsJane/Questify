@@ -10,6 +10,7 @@
         <ul>
             {% for course in course %}
             <li><strong>{{ course.title }}</strong> - {{course.description}} {{ course.published }}</li>
+            {{ course.same_teacher_course }}
             {% endfor %}
         </ul>
 
