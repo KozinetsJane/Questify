@@ -1,41 +1,91 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Questify</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f0f2f5;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        h1 {
-            font-size: 3em;
-            color: #333;
-            margin-bottom: 20px;
-        }
-        a.button {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #4CAF50;
-            color: white;
-            text-decoration: none;
-            font-size: 1.2em;
-            border-radius: 8px;
-            transition: 0.3s;
-        }
-        a.button:hover {
-            background: #45a049;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Questify — Учебная платформа</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      background: url("{% static 'images/education-tech-background.jpg' %}") no-repeat center center/cover;
+      position: relative;
+      margin: 0;
+    }
+    .overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1;
+    }
+    .overlay-card {
+      position: relative;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.95);
+      color: #333;
+      border-radius: 15px;
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+    h1 {
+      font-size: 3.5rem;
+      font-weight: bold;
+      color: #007bff;
+    }
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: #555;
+    }
+    .btn-custom {
+      background-color: #007bff;
+      color: white;
+      font-size: 1.2rem;
+      padding: 0.75rem 2rem;
+      border-radius: 30px;
+      transition: all 0.3s ease;
+    }
+    .btn-custom:hover {
+      background-color: #0056b3;
+      transform: translateY(-3px);
+    }
+    .content-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 2;
+    }
+  </style>
 </head>
 <body>
-    <h1>Questify</h1>
-    <a href="{% url 'course_list' %}" class="button">Смотреть курсы</a>
+  <div class="overlay"></div>
+  <div class="content-wrapper">
+    <div class="overlay-card text-center">
+      <h1>Questify</h1>
+      <h2>Учебная платформа, где:</h2>
+      <ul class="list-unstyled fs-5 text-start mx-auto" style="max-width: 600px;">
+        <li><strong>Преподаватели</strong> создают курсы, добавляют уроки, материалы и тесты.</li>
+        <li><strong>Студенты</strong> проходят уроки и тесты.</li>
+        <li><strong>AI помогает:</strong>
+          <ul>
+            <li>генерировать тестовые вопросы по тексту урока,</li>
+            <li>формировать варианты ответов,</li>
+            <li>делать краткие резюме уроков.</li>
+          </ul>
+        </li>
+      </ul>
+      <div class="mt-4">
+        <a href="{% url 'course_list' %}" class="btn btn-custom shadow-lg">
+          🚀 Смотреть курсы
+        </a>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
