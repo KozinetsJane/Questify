@@ -1,40 +1,49 @@
-<!DOCTYPE html>
-<html lang="ru">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1/0">
-        <title>Список доступных курсов</title> 
-    </head>
-    <body>
-        {% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <h1 class="my-4">Доступные курсы</h1>
+<div class="container mt-4">
 
-    <div class="row">
-        {% for course in courses %}
-            <div class="col-md-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">{{ course.title }}</h5>
-                        <p class="card-text">
-                            {{ course.description|truncatewords:50 }}
-                        </p>
-                        <p><strong>Цена:</strong> {{ course.price }} $</p>
-                        <p><strong>Преподаватель:</strong> {{ course.teacher }}</p>
-                        <p><strong>Уровень:</strong> {{ course.get_level_display }}</p>
-                        <a href="#" class="btn btn-primary">Подробнее</a>
-                    </div>
-                </div>
-            </div>
-        {% empty %}
-            <p>Курсы пока не добавлены.</p>
-        {% endfor %}
+  <!-- Форма поиска -->
+  <form method="get" action="" class="mb-4">
+    <div class="input-group">
+      <input 
+        type="text" 
+        name="q" 
+        class="form-control" 
+        placeholder="Поиск по названию, преподавателю, категории или уровню..."
+        value="{{ request.GET.q }}">
+      <button class="btn btn-primary" type="submit">🔍 Найти</button>
     </div>
+  </form>
+
+  <!-- Список курсов -->
+  <div class="row">
+    {% for course in courses %}
+      <div class="col-md-4 mb-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">{{ course.title }}</h5>
+            <p class="card-text">
+              {{ course.description|truncatewords:20 }}
+            </p>
+            <p><strong>Цена:</strong> {{ course.price }} $</p>
+            <p><strong>Преподаватель:</strong> {{ course.teacher }}</p>
+            <p><strong>Уровень:</strong> {{ course.get_level_display }}</p>
+            <p><strong>Категория:</strong>
+                {% for cat in course.category.all %}
+                 {{ cat.name }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                  Нет
+                {% endfor %}
+            </p> 
+            <a href="{% url 'course_detail' course.id %}" class="btn btn-outline-primary btn-sm">Подробнее</a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <p>Курсы не найдены.</p>
+    {% endfor %}
+  </div>
+
 </div>
 {% endblock %}
-        {{ form }}
-
-    </body>
-</html>

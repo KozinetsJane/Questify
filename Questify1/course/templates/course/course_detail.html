@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h2 class="card-title">{{ course.title }}</h2>
+      <p><strong>Преподаватель:</strong> {{ course.teacher }}</p>
+      <p><strong>Категория:</strong>
+        {% for cat in course.category.all %}
+                 {{ cat.name }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                  Нет
+                {% endfor %}
+      </p>
+      <p><strong>Уровень:</strong> {{ course.get_level_display }}</p>
+      <hr>
+      <p>{{ course.description }}</p>
+    </div>
+  </div>
+  <a href="{% url 'course_list' %}" class="btn btn-secondary mt-3">← Назад к списку</a>
+</div>
+{% endblock %}
