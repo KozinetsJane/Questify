@@ -14,8 +14,19 @@
                 {% endfor %}
       </p>
       <p><strong>Уровень:</strong> {{ course.get_level_display }}</p>
+      <p><strong>Стоимость:</strong> {{ course.price }} $</p>
       <hr>
       <p>{{ course.description }}</p>
+      <h4 class="mt-4">Список уроков</h4>
+      <ul class="list-group">
+        {% for lesson in course.lessons.all %}
+          <li class="list-group-item">
+            {{ lesson.order }}. {{ lesson.title }}
+          </li>
+        {% empty %}
+          <li class="list-group-item">Уроков пока нет.</li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
   <a href="{% url 'course_list' %}" class="btn btn-secondary mt-3">← Назад к списку</a>
