@@ -27,7 +27,7 @@ class LessonInline(admin.TabularInline):
 # Курсы
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "teacher", "price", "level", "published")
+    list_display = ("id", "title", "teacher", "price", "level", "published", "outcome")
     search_fields = ("title", "description", "teacher__surname", "teacher__name")
     list_filter = ("level", "category", "teacher")
     ordering = ("-published",)

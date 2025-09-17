@@ -24,6 +24,7 @@ class Course(models.Model):
     price = models.FloatField(null=True, verbose_name="Цена", blank=True)
     published = models.DateTimeField(db_index=True, verbose_name="Опубликовано", default=timezone.now)
     level = models.SmallIntegerField("Уровень сложности", choices=LevelChoices.choices, default=LevelChoices.BEGINNER)
+    outcome = models.TextField(blank=True, null=True, help_text="Что студент сможет после прохождения курса")
     
     teacher = models.ForeignKey("course.Teacher", on_delete=models.CASCADE, blank=True, null=True, related_name="course")
     category = models.ManyToManyField(Category, verbose_name="Категория", blank=True)

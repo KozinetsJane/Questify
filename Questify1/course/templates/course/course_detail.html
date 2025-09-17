@@ -27,6 +27,13 @@
           <li class="list-group-item">Уроков пока нет.</li>
         {% endfor %}
       </ul>
+      {% if course.outcome %}
+      <h4 class="mt-4">🎓 Результат:</h4>
+      <p>После прохождения курса студент сможет:</p>
+      <div class="card p-3 bg-light">
+      {{ course.outcome|linebreaks }}
+  </div>
+{% endif %}
     </div>
   </div>
   <a href="{% url 'course_list' %}" class="btn btn-secondary mt-3">← Назад к списку</a>
