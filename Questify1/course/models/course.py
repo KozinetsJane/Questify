@@ -1,5 +1,8 @@
 from django.db import models
 from django.utils import timezone
+from users.models import CustomUser
+from django.conf import settings
+
 
 
 class Category(models.Model):
@@ -26,8 +29,9 @@ class Course(models.Model):
     level = models.SmallIntegerField("Уровень сложности", choices=LevelChoices.choices, default=LevelChoices.BEGINNER)
     outcome = models.TextField(blank=True, null=True, help_text="Что студент сможет после прохождения курса")
     
-    teacher = models.ForeignKey("course.Teacher", on_delete=models.CASCADE, blank=True, null=True, related_name="course")
+    teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'role': 'teacher'}, default=1)
     category = models.ManyToManyField(Category, verbose_name="Категория", blank=True)
+    students = models.ManyToManyField(CustomUser, related_name="enrolled_courses", blank=True)
 
     def __str__(self):
         return f"{self.title} {self.price}"
