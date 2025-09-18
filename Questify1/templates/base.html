@@ -22,7 +22,7 @@
         {% if user.is_authenticated %}
           {% if user.role == 'teacher' %}
             <li class="nav-item">
-              <a class="nav-link" href="{% url 'teacher_dashboard' %}">Мои курсы</a>
+              <a class="nav-link" href="{% url 'user_dashboard' %}">Мои курсы</a>
             </li>
           {% endif %}
           {% if user.role == 'admin' %}

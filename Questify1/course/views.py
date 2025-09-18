@@ -6,6 +6,12 @@ from django.http import HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import DetailView
 from .models import Lesson, Course
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from .forms import CourseForm
+from .forms import LessonForm
+
 
 class CourseListView(ListView):
     model = Course
@@ -97,4 +103,103 @@ class LessonDetailView(LoginRequiredMixin, DetailView):
 
         # Иначе — доступ запрещён
         return HttpResponseForbidden("У вас нет доступа к этому уроку.")
+    
+
+# Проверка, что пользователь — преподаватель
+class TeacherRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        return self.request.user.role == 'teacher'
+
+class TeacherDashboardView(LoginRequiredMixin, ListView):
+    model = Course
+    template_name = "course/teacher_dashboard.html"  # корректно, т.к. в course/templates/
+    context_object_name = "courses"
+
+    def get_queryset(self):
+        return Course.objects.filter(teacher=self.request.user)
+    
+# Список курсов преподавателя
+class TeacherCourseListView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
+    model = Course
+    template_name = "course/teacher_dashboard.html"
+    context_object_name = "courses"
+
+    def get_queryset(self):
+        return Course.objects.filter(teacher=self.request.user)
+
+# Создание нового курса
+class CourseCreateView(LoginRequiredMixin, TeacherRequiredMixin, CreateView):
+    model = Course
+    form_class = CourseForm
+    template_name = "course/course_form.html"
+
+    def form_valid(self, form):
+        form.instance.teacher = self.request.user
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('teacher_dashboard')
+
+# Редактирование курса
+class CourseUpdateView(LoginRequiredMixin, TeacherRequiredMixin, UpdateView):
+    model = Course
+    form_class = CourseForm
+    template_name = "course/course_form.html"
+
+    def get_queryset(self):
+        # чтобы преподаватель мог редактировать только свои курсы
+        return Course.objects.filter(teacher=self.request.user)
+
+    def get_success_url(self):
+        return reverse_lazy('teacher_dashboard')
+
+# Удаление курса
+class CourseDeleteView(LoginRequiredMixin, TeacherRequiredMixin, DeleteView):
+    model = Course
+    template_name = "course/course_confirm_delete.html"
+
+    def get_queryset(self):
+        return Course.objects.filter(teacher=self.request.user)
+
+    def get_success_url(self):
+        return reverse_lazy('teacher_dashboard')
+    
+class LessonCreateView(LoginRequiredMixin, TeacherRequiredMixin, CreateView):
+    model = Lesson
+    form_class = LessonForm
+    template_name = "course/lesson_form.html"
+
+    def form_valid(self, form):
+        course_id = self.kwargs.get('course_pk')
+        form.instance.course_id = course_id
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return reverse_lazy('teacher_dashboard')
+
+# Редактирование урока
+class LessonUpdateView(LoginRequiredMixin, TeacherRequiredMixin, UpdateView):
+    model = Lesson
+    form_class = LessonForm
+    template_name = "course/lesson_form.html"
+
+    def get_queryset(self):
+        # можно редактировать только уроки своих курсов
+        return Lesson.objects.filter(course__teacher=self.request.user)
+
+    def get_success_url(self):
+        return reverse_lazy('teacher_dashboard')
+
+# Удаление урока
+class LessonDeleteView(LoginRequiredMixin, TeacherRequiredMixin, DeleteView):
+    model = Lesson
+    template_name = "course/lesson_confirm_delete.html"
+
+    def get_queryset(self):
+        return Lesson.objects.filter(course__teacher=self.request.user)
+
+    def get_success_url(self):
+        return reverse_lazy('teacher_dashboard')
+
+
 # Create your views here.
