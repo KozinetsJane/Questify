@@ -8,30 +8,38 @@
     {% csrf_token %}
     <ol>
     {% for q in questions %}
-        <li>
+        <li class="mb-3">
             <strong>{{ q.text }}</strong>
-            <ul class="list-group list-group-flush">
+            <div class="quiz-options mt-2">
                 {% for option in "A,B,C,D"|split:"," %}
-                    {% with q|get_option_text:option as option_text %}
-                    <li
+                    {% with option_text=q|get_option_text:option %}
+                    <div class="form-check"
                         {% if completed %}
                             {% if option == q.correct_answer %}
-                                style="background-color: #d4edda;"
-                            {% elif student_answers|get_item:q.id == option %}
-                                style="background-color: #f8d7da;"
+                                style="background-color: #d4edda;"  {# зелёный фон для правильного #}
+                            {% elif option == student_answers|get_answer:q.id %}
+                                style="background-color: #f8d7da;"  {# красный фон для выбранного неправильного #}
                             {% endif %}
                         {% endif %}
                     >
-                        <label>
-                            <input type="radio" name="question_{{ q.id }}" value="{{ option }}"
-                                {% if student_answers|get_item:q.id == option %}checked{% endif %}
-                                {% if completed %}disabled{% endif %}>
+                        <input class="form-check-input" type="radio" 
+                               name="question_{{ q.id }}" 
+                               id="q{{ q.id }}_{{ option }}" 
+                               value="{{ option }}"
+                               {% if option == student_answers|get_answer:q.id %}checked{% endif %}
+                               {% if completed %}disabled{% endif %}>
+                        <label class="form-check-label" for="q{{ q.id }}_{{ option }}">
                             {{ option_text }}
                         </label>
-        </li>
-        {% endwith %}
-    {% endfor %}
-            </ul>
+                    </div>
+                    {% endwith %}
+                {% endfor %}
+
+                <!-- Кнопка подсказки -->
+                <button type="button" class="btn btn-link text-primary p-0 mt-1"
+                        onclick="getHint({{ q.id }})">💡 Подсказка</button>
+                <div id="hint-{{ q.id }}" class="text-muted small mt-1"></div>
+            </div>
         </li>
     {% endfor %}
     </ol>
@@ -43,4 +51,17 @@
         <a href="{% url 'course:student_courses' %}" class="btn btn-secondary mt-3">← Назад к моим курсам</a>
     {% endif %}
 </form>
+
+<script>
+function getHint(questionId) {
+    fetch(`/course/hint/${questionId}/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById(`hint-${questionId}`).innerText = data.hint;
+        })
+        .catch(err => {
+            document.getElementById(`hint-${questionId}`).innerText = "Ошибка при получении подсказки.";
+        });
+}
+</script>
 {% endblock %}

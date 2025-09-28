@@ -7,7 +7,7 @@ from .views import (
     LessonCreateView, LessonDeleteView, LessonUpdateView, 
 )
 from .views import TeacherDashboardView
-from .views import generate_quiz, enroll_course, take_quiz
+from .views import generate_quiz, enroll_course, take_quiz, get_hint
 from .views import StudentCourseListView
 
 
@@ -36,4 +36,5 @@ urlpatterns = [
     # Студент: мои курсы
     path('student/courses/', StudentCourseListView.as_view(), name='student_courses'),
     path('quiz/<int:quiz_id>/take/', take_quiz, name='take_quiz'),
+    path("hint/<int:question_id>/", get_hint, name="get_hint"),
 ]

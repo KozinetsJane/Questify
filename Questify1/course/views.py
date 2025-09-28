@@ -14,7 +14,11 @@ from django.urls import reverse_lazy
 from .forms import CourseForm
 from .forms import LessonForm
 from .utils import generate_quiz_questions, parse_quiz_text
-
+import requests
+from django.http import JsonResponse
+import os
+from django.http import JsonResponse, Http404
+from dotenv import load_dotenv
 
 
 
@@ -295,7 +299,7 @@ def take_quiz(request, quiz_id):
 
         for question in questions:
             answer = request.POST.get(f"question_{question.id}")
-            student_answers[question.id] = answer
+            student_answers[str(question.id)] = answer
             if answer == question.correct_answer:
                 score += 1
 
@@ -317,3 +321,48 @@ def take_quiz(request, quiz_id):
             "completed": False
         }
         return render(request, "course/take_quiz.html", context)
+
+load_dotenv()
+API_URL = os.getenv("GPT_CHAT_API_URL")
+API_KEY = os.getenv("GPT_CHAT_API_KEY")
+
+
+def get_hint(request, question_id):
+    """
+    Возвращает подсказку от AI по конкретному вопросу.
+    """
+    question = get_object_or_404(Question, id=question_id)
+
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": "turbo",  # как и в utils.py
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Ты помощник для студентов. "
+                    "Дай краткую подсказку, которая направляет к правильному ответу, "
+                    "но не раскрывает его напрямую."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Вопрос: {question.text}\nВарианты: A) {question.option_a}, B) {question.option_b}, C) {question.option_c}, D) {question.option_d}",
+            },
+        ],
+        "temperature": 0.7,
+    }
+
+    try:
+        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        hint = data["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        return JsonResponse({"hint": f"Ошибка при обращении к модели: {str(e)}"})
+
+    return JsonResponse({"hint": hint})

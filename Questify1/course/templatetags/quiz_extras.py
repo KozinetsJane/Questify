@@ -2,13 +2,6 @@ from django import template
 
 register = template.Library()
 
-@register.filter
-def get_option_text(question, letter):
-    """
-    Возвращает текст варианта ответа по букве.
-    Предполагается, что Question хранит поля: option_a, option_b, option_c, option_d
-    """
-    return getattr(question, f"option_{letter.lower()}", "")
 
 @register.filter
 def get_item(dictionary, key):
@@ -19,3 +12,14 @@ def get_item(dictionary, key):
 def split(value, sep):
     """Разделяет строку по разделителю и возвращает список"""
     return value.split(sep)
+
+
+@register.filter
+def get_option_text(question, letter):
+    return getattr(question, f"option_{letter.lower()}", "")
+
+@register.filter
+def get_answer(student_answers, question_id):
+    if not student_answers:
+        return None
+    return student_answers.get(str(question_id)) or student_answers.get(question_id)
