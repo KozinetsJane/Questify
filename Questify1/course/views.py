@@ -1,16 +1,21 @@
 from django.views.generic import ListView, DetailView
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import DetailView
-from .models import Lesson, Course
+from course.models import Lesson, Course, Quiz, Question
+from course.models.quiz import Question, Quiz
+
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from .forms import CourseForm
 from .forms import LessonForm
+from .utils import generate_quiz_questions, parse_quiz_text
+
+
 
 
 class CourseListView(ListView):
@@ -127,6 +132,16 @@ class TeacherCourseListView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
     def get_queryset(self):
         return Course.objects.filter(teacher=self.request.user)
 
+class StudentCourseListView(LoginRequiredMixin, ListView):
+    model = Course
+    template_name = "course/student_courses.html"  # создайте этот шаблон
+    context_object_name = "courses"
+
+    def get_queryset(self):
+        # возвращаем только курсы, на которые подписан текущий студент
+        user = self.request.user
+        return Course.objects.filter(students=user)
+       
 # Создание нового курса
 class CourseCreateView(LoginRequiredMixin, TeacherRequiredMixin, CreateView):
     model = Course
@@ -138,7 +153,7 @@ class CourseCreateView(LoginRequiredMixin, TeacherRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('teacher_dashboard')
+        return reverse_lazy('course:teacher_dashboard')
 
 # Редактирование курса
 class CourseUpdateView(LoginRequiredMixin, TeacherRequiredMixin, UpdateView):
@@ -151,7 +166,7 @@ class CourseUpdateView(LoginRequiredMixin, TeacherRequiredMixin, UpdateView):
         return Course.objects.filter(teacher=self.request.user)
 
     def get_success_url(self):
-        return reverse_lazy('teacher_dashboard')
+        return reverse_lazy('course:teacher_dashboard')
 
 # Удаление курса
 class CourseDeleteView(LoginRequiredMixin, TeacherRequiredMixin, DeleteView):
@@ -162,7 +177,7 @@ class CourseDeleteView(LoginRequiredMixin, TeacherRequiredMixin, DeleteView):
         return Course.objects.filter(teacher=self.request.user)
 
     def get_success_url(self):
-        return reverse_lazy('teacher_dashboard')
+        return reverse_lazy('course:teacher_dashboard')
     
 class LessonCreateView(LoginRequiredMixin, TeacherRequiredMixin, CreateView):
     model = Lesson
@@ -175,7 +190,7 @@ class LessonCreateView(LoginRequiredMixin, TeacherRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('teacher_dashboard')
+        return reverse_lazy('course:teacher_dashboard')
 
 # Редактирование урока
 class LessonUpdateView(LoginRequiredMixin, TeacherRequiredMixin, UpdateView):
@@ -188,7 +203,7 @@ class LessonUpdateView(LoginRequiredMixin, TeacherRequiredMixin, UpdateView):
         return Lesson.objects.filter(course__teacher=self.request.user)
 
     def get_success_url(self):
-        return reverse_lazy('teacher_dashboard')
+        return reverse_lazy('course:teacher_dashboard')
 
 # Удаление урока
 class LessonDeleteView(LoginRequiredMixin, TeacherRequiredMixin, DeleteView):
@@ -199,7 +214,106 @@ class LessonDeleteView(LoginRequiredMixin, TeacherRequiredMixin, DeleteView):
         return Lesson.objects.filter(course__teacher=self.request.user)
 
     def get_success_url(self):
-        return reverse_lazy('teacher_dashboard')
+        return reverse_lazy('course:teacher_dashboard')
+
+@login_required
+def enroll_course(request, pk):
+    course = get_object_or_404(Course, pk=pk)
+    course.students.add(request.user)
+    course.save()
+    return redirect('course:course_detail', pk=course.pk) 
+
+def lesson_quiz_view(request, lesson_id):
+    """
+    Отображает тест для урока (без проверки прав пользователя).
+    Использует утилиты для генерации вопросов.
+    """
+    lesson = get_object_or_404(Lesson, id=lesson_id)
+
+    raw_text = generate_quiz_questions(lesson.content)
+    quiz = parse_quiz_text(raw_text) if not raw_text.startswith("Ошибка") else []
+
+    return render(request, "course/lesson_quiz.html", {
+        "lesson": lesson,
+        "quiz": quiz,
+        "error": None if quiz else raw_text,  # если пусто — покажем текст ошибки
+    })
 
 
-# Create your views here.
+@login_required
+def generate_quiz(request, lesson_id):
+    """
+    Генерация теста для урока с проверкой, что текущий пользователь — преподаватель.
+    """
+    lesson = get_object_or_404(Lesson, id=lesson_id)
+
+    # Проверка прав
+    if request.user != lesson.course.teacher:
+        return render(request, "course/error.html", {
+            "message": "У вас нет прав для генерации теста."
+        })
+
+    # Генерация вопросов через GPT-чат
+    raw_text = generate_quiz_questions(lesson.content)
+    if not raw_text or raw_text.startswith("Ошибка"):
+        return render(request, "course/quiz_generated.html", {
+            "lesson": lesson,
+            "quiz_text": [],
+            "error": raw_text or "Пустой ответ от модели."
+        })
+    # Парсим текст в список вопросов
+    questions = parse_quiz_text(raw_text)
+
+    # Сохраняем Quiz и вопросы в базу
+    quiz = Quiz.objects.create(lesson=lesson)
+    for q in questions:
+        Question.objects.create(
+            quiz=quiz,
+            text=q["question"],
+            option_a=q["options"][0] if len(q["options"]) > 0 else "",
+            option_b=q["options"][1] if len(q["options"]) > 1 else "",
+            option_c=q["options"][2] if len(q["options"]) > 2 else "",
+            option_d=q["options"][3] if len(q["options"]) > 3 else "",
+            correct_answer=q["answer"] or ""
+        )
+
+    return render(request, "course/quiz_generated.html", {
+        "lesson": lesson,
+        "quiz_text": questions,
+        "error": None
+    })
+
+@login_required
+def take_quiz(request, quiz_id):
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    questions = quiz.questions.all()  # related_name="questions" в Question
+
+    if request.method == "POST":
+        total = questions.count()
+        score = 0
+        student_answers = {}
+
+        for question in questions:
+            answer = request.POST.get(f"question_{question.id}")
+            student_answers[question.id] = answer
+            if answer == question.correct_answer:
+                score += 1
+
+        context = {
+            "quiz": quiz,
+            "questions": questions,
+            "student_answers": student_answers,
+            "score": score,
+            "total": total,
+            "completed": True
+        }
+        return render(request, "course/take_quiz.html", context)
+
+    else:
+        # GET-запрос, просто показываем вопросы
+        context = {
+            "quiz": quiz,
+            "questions": questions,
+            "completed": False
+        }
+        return render(request, "course/take_quiz.html", context)

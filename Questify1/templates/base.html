@@ -17,8 +17,14 @@
     <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav me-auto">
         <li class="nav-item">
-          <a class="nav-link" href="{% url 'course_list' %}">Курсы</a>
+          <a class="nav-link" href="{% url 'course:course_list' %}">Курсы</a>
         </li>
+        <!-- Другие ссылки меню -->
+        {% if user.is_authenticated %}
+          {% if user.role == 'student' %}
+            <a href="{% url 'course:student_courses' %}" class="btn btn-primary">Мои курсы</a>
+        {% endif %}
+        {% endif %}
         {% if user.is_authenticated %}
           {% if user.role == 'teacher' %}
             <li class="nav-item">

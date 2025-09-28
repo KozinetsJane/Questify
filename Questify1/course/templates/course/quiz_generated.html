@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Сгенерированный тест для урока: {{ lesson.title }}</h2>
+
+{% if quiz_text %}
+    <ol>
+    {% for q in quiz_text %}
+        <li>
+            <strong>{{ q.question }}</strong>
+            <ul>
+                {% for option in q.options %}
+                    <li>{{ option }}</li>
+                {% endfor %}
+            </ul>
+            <p><em>Правильный ответ: {{ q.answer }}</em></p>
+        </li>
+    {% endfor %}
+    </ol>
+{% else %}
+    <p>Не удалось сгенерировать тест.</p>
+    {% if error %}
+        <p><strong>Ошибка:</strong> {{ error }}</p>
+    {% endif %}
+{% endif %}
+
+<a href="{% url 'course:teacher_dashboard' %}" class="btn btn-secondary mt-3">← Назад к панели преподавателя</a>
+{% endblock %}

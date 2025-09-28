@@ -5,14 +5,22 @@
   <div class="card shadow-sm">
     <div class="card-body">
       <h3>{{ lesson.title }}</h3>
-      <p class="text-muted">Курс: <a href="{% url 'course_detail' lesson.course.pk %}">{{ lesson.course.title }}</a></p>
+      <p class="text-muted">Курс: <a href="{% url 'course:course_detail' lesson.course.pk %}">{{ lesson.course.title }}</a></p>
       <hr>
       <div class="lesson-content">
         {{ lesson.content|linebreaks }}
       </div>
     </div>
   </div>
-  <a href="{% url 'course_detail' lesson.course.pk %}" class="btn btn-secondary mt-3">← Назад к курсу</a>
+  {% if user.is_authenticated and user.role == 'student' and lesson.quizzes.exists %}
+    {# Берем последний тест, если их несколько #}
+    {% with quiz=lesson.quizzes.last %}
+        <a href="{% url 'course:take_quiz' quiz_id=quiz.id %}" class="btn btn-success mt-3">
+            Пройти тест
+        </a>
+    {% endwith %}
+  {% endif %}
+  <a href="{% url 'course:course_detail' lesson.course.pk %}" class="btn btn-secondary mt-3">← Назад к курсу</a>
 </div>
 {% endblock %}
 

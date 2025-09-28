@@ -28,7 +28,7 @@
           <li class="list-group-item d-flex justify-content-between align-items-center">
             <div>
               {% if user.is_authenticated and user.is_superuser or course.teacher == user or user in course.students.all %}
-                <a href="{% url 'lesson_detail' course.pk lesson.pk %}">
+                <a href="{% url 'course:lesson_detail' course.pk lesson.pk %}">
                   {{ lesson.order }}. {{ lesson.title }}
                 </a>
               {% else %}
@@ -48,7 +48,7 @@
           {% if user in course.students.all %}
             <p class="text-success mt-3">✅ Вы записаны на этот курс</p>
           {% else %}
-            <a href="{% url 'enroll_course' course.id %}" class="btn btn-primary mt-3">Записаться на курс</a>
+            <a href="{% url 'course:enroll_course' course.id %}" class="btn btn-primary mt-3">Записаться на курс</a>
           {% endif %}
         {% endif %}
       {% else %}
@@ -67,6 +67,6 @@
     </div>
   </div>
 
-  <a href="{% url 'course_list' %}" class="btn btn-secondary mt-3">← Назад к списку</a>
+  <a href="{% url 'course:course_list' %}" class="btn btn-secondary mt-3">← Назад к списку</a>
 </div>
 {% endblock %}

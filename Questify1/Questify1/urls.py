@@ -23,7 +23,7 @@ def home(request):
 
 urlpatterns = [
     path('', home, name="home"),
-    path('course/', include("course.urls")),
     path('admin/', admin.site.urls),
     path("users/", include("users.urls")),
+    path('course/', include(('course.urls', 'course'), namespace='course')),
 ]
