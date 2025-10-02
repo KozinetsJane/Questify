@@ -1,91 +1,148 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Questify — Учебная платформа</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      min-height: 100vh;
-      background: url("{% static 'images/education-tech-background.jpg' %}") no-repeat center center/cover;
-      position: relative;
-      margin: 0;
-    }
-    .overlay {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      z-index: 1;
-    }
-    .overlay-card {
-      position: relative;
-      z-index: 2;
-      background: rgba(255, 255, 255, 0.95);
-      color: #333;
-      border-radius: 15px;
-      padding: 2rem;
-      max-width: 800px;
-      margin: auto;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    }
-    h1 {
-      font-size: 3.5rem;
-      font-weight: bold;
-      color: #007bff;
-    }
-    h2 {
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
-      color: #555;
-    }
-    .btn-custom {
-      background-color: #007bff;
-      color: white;
-      font-size: 1.2rem;
-      padding: 0.75rem 2rem;
-      border-radius: 30px;
-      transition: all 0.3s ease;
-    }
-    .btn-custom:hover {
-      background-color: #0056b3;
-      transform: translateY(-3px);
-    }
-    .content-wrapper {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      z-index: 2;
-    }
-  </style>
-</head>
-<body>
-  <div class="overlay"></div>
-  <div class="content-wrapper">
-    <div class="overlay-card text-center">
-      <h1>Questify</h1>
-      <h2>Учебная платформа, где:</h2>
-      <ul class="list-unstyled fs-5 text-start mx-auto" style="max-width: 600px;">
-        <li><strong>Преподаватели</strong> создают курсы, добавляют уроки, материалы и тесты.</li>
-        <li><strong>Студенты</strong> проходят уроки и тесты.</li>
-        <li><strong>AI помогает:</strong>
-          <ul>
-            <li>генерировать тестовые вопросы по тексту урока,</li>
-            <li>формировать варианты ответов,</li>
-            <li>делать краткие резюме уроков.</li>
-          </ul>
-        </li>
-      </ul>
-      <div class="mt-4">
-        <a href="{% url 'course:course_list' %}">
-          🚀 Смотреть курсы
-        </a>
+{% extends "base.html" %}
+
+{% block content %}
+<div class="relative overflow-hidden">
+  <!-- Hero Section -->
+<div class="hero">
+    <div class="hero-content">
+        <h1>Questify</h1>
+        <p class="subtitle">Учебная платформа нового поколения</p>
+        <p class="description">
+            Преподаватели создают курсы, добавляют уроки, материалы и тесты.<br>
+            Студенты проходят их интерактивно с AI-подсказками.
+        </p>
+    </div>
+    <!-- Фигуры на фоне -->
+    <svg class="hero-bg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+        <path fill="white" fill-opacity="0.1"
+              d="M0,64L48,90.7C96,117,192,171,288,181.3C384,192,480,160,576,138.7C672,117,768,107,864,133.3C960,160,1056,224,1152,229.3C1248,235,1344,181,1392,154.7L1440,128L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"></path>
+    </svg>
+</div>
+
+<style>
+.hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(to right, #3b82f6, #6366f1); /* синий градиент */
+    color: white;
+    text-align: center;
+    padding: 100px 20px;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2; /* поверх SVG */
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero h1 {
+    font-size: 4rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.hero .subtitle {
+    font-size: 1.8rem;
+    margin-bottom: 20px;
+}
+
+.hero .description {
+    font-size: 1.2rem;
+    line-height: 1.6;
+}
+
+/* SVG на фоне */
+.hero-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none; /* чтобы не мешало кликам */
+}
+</style>
+
+   <!-- Features Section -->
+  <div class="container mx-auto px-4 py-16">
+    <h2 class="text-4xl font-bold text-center mb-12" data-aos="fade-up">Возможности платформы</h2>
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div class="feature-card" data-aos="fade-right">
+        <img src="https://img.icons8.com/fluency/48/000000/classroom.png" class="mx-auto mb-4">
+        <h3 class="text-xl font-semibold mb-2 text-center">Для преподавателей</h3>
+        <ul class="list-disc list-inside space-y-1">
+          <li>Создание курсов и уроков</li>
+          <li>Добавление материалов и тестов</li>
+          <li>Отслеживание прогресса студентов</li>
+        </ul>
+      </div>
+      <div class="feature-card" data-aos="fade-up">
+        <img src="https://img.icons8.com/fluency/48/000000/student-male.png" class="mx-auto mb-4">
+        <h3 class="text-xl font-semibold mb-2 text-center">Для студентов</h3>
+        <ul class="list-disc list-inside space-y-1">
+          <li>Прохождение уроков и тестов</li>
+          <li>Получение подсказок от AI</li>
+          <li>Личный прогресс и достижения</li>
+        </ul>
+      </div>
+      <div class="feature-card" data-aos="fade-left">
+        <img src="https://img.icons8.com/fluency/48/000000/artificial-intelligence.png" class="mx-auto mb-4">
+        <h3 class="text-xl font-semibold mb-2 text-center">AI-подсказки</h3>
+        <ul class="list-disc list-inside space-y-1">
+          <li>Генерация тестовых вопросов</li>
+          <li>Формирование вариантов ответов</li>
+          <li>Помощь при прохождении тестов</li>
+        </ul>
       </div>
     </div>
   </div>
-</body>
-</html>
+
+  <!-- Testimonials Section -->
+  <div class="py-16">
+    <h2 class="text-4xl font-bold text-center mb-12" data-aos="fade-up">Отзывы пользователей</h2>
+    <div class="container mx-auto px-4 grid md:grid-cols-3 gap-8">
+      <div class="testimonial-card" data-aos="zoom-in" data-aos-delay="100">
+        <p class="mb-4">"Questify сделал обучение моих студентов интерактивным и увлекательным! AI-подсказки — просто находка."</p>
+        <p class="font-semibold">— Анна, преподаватель</p>
+      </div>
+      <div class="testimonial-card" data-aos="zoom-in" data-aos-delay="200">
+        <p class="mb-4">"Очень удобно проходить тесты и получать мгновенные подсказки. Учеба стала интереснее."</p>
+        <p class="font-semibold">— Иван, студент</p>
+      </div>
+      <div class="testimonial-card" data-aos="zoom-in" data-aos-delay="300">
+        <p class="mb-4">"AI помогает не только преподавателям, но и студентам лучше усваивать материал."</p>
+        <p class="font-semibold">— Мария, студент</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Светлая тема */
+.feature-card, .testimonial-card {
+    background-color: white;
+    color: #1f2937; /* темно-серый текст */
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+.feature-card:hover, .testimonial-card:hover { transform: scale(1.05); }
+
+/* Тёмная тема */
+body.dark-mode .feature-card,
+body.dark-mode .testimonial-card {
+    background-color: #1e293b; /* тёмный фон */
+    color: #f1f5f9; /* светлый текст */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+</style>
+
+<!-- AOS -->
+<link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<script>
+  AOS.init({ duration: 800, once: true });
+</script>
+{% endblock %}
