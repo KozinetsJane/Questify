@@ -2,6 +2,8 @@ from .course import Course, Category
 from .teacher import Teacher
 from .lesson import Lesson
 from .quiz import Quiz, Question
+from .progress import *
+from .achievement import *
 
 __all__ = [
     "Course",
@@ -10,4 +12,9 @@ __all__ = [
     "Lesson",
     "Question",
     "Quiz",
+    "StudentProgress",
+    "User",
+    "Achievement",
+    "StudentAchievement",
+
 ]

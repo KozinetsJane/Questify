@@ -1,11 +1,82 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Мои курсы</h2>
-<ul>
-    {% for course in courses %}
-        <li><a href="{% url 'course:course_detail' course.id %}">{{ course.title }}</a></li>
-    {% empty %}
-        <li>У вас нет курсов.</li>
-    {% endfor %}
-</ul>
+<div class="container mt-5">
+    <h2 class="mb-4">🎓 Мои курсы</h2>
+
+    {% if courses %}
+        <ul class="list-group mb-4">
+            {% for course in courses %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="{% url 'course:course_detail' course.id %}" class="fw-semibold text-decoration-none">
+                        {{ course.title }}
+                    </a>
+                    <span class="badge bg-primary rounded-pill">{{ course.lessons.count }} уроков</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="alert alert-info">У вас пока нет активных курсов.</div>
+    {% endif %}
+
+    <!-- Прогресс студента -->
+    <h3 class="mt-5 mb-3">📊 Мой прогресс</h3>
+    {% if progress_records %}
+        <div class="table-responsive">
+            <table class="table align-middle table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>Курс</th>
+                        <th>Завершено уроков</th>
+                        <th>Всего уроков</th>
+                        <th>Оценка</th>
+                        <th>Прогресс</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in progress_records %}
+                    <tr>
+                        <td>{{ record.course.title }}</td>
+                        <td>{{ record.completed_lessons }}</td>
+                        <td>{{ record.total_lessons }}</td>
+                        <td>{{ record.score }}</td>
+                        <td style="width: 25%;">
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar 
+                                    {% if record.progress_percent >= 80 %}bg-success
+                                    {% elif record.progress_percent >= 50 %}bg-warning
+                                    {% else %}bg-danger{% endif %}"
+                                     role="progressbar"
+                                     style="width: {{ record.progress_percent }}%">
+                                    {{ record.progress_percent }}%
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted">Пока нет данных о вашем прогрессе.</p>
+    {% endif %}
+
+    <!-- Достижения -->
+    <h3 class="mt-5 mb-3">🏅 Мои достижения</h3>
+    <div class="row">
+        {% for item in achievements %}
+        <div class="col-md-4 mb-3">
+            <div class="card text-center shadow-sm">
+                <div class="card-body">
+                    <div class="display-5">{{ item.achievement.icon }}</div>
+                    <h5 class="mt-2">{{ item.achievement.name }}</h5>
+                    <p class="text-muted">{{ item.achievement.description }}</p>
+                    <small class="text-secondary">Получено: {{ item.earned_at|date:"d.m.Y" }}</small>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">Пока нет достижений 😅</p>
+        {% endfor %}
+    </div>
+</div>
 {% endblock %}

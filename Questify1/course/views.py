@@ -19,6 +19,8 @@ from django.http import JsonResponse
 import os
 from django.http import JsonResponse, Http404
 from dotenv import load_dotenv
+from course.models import StudentProgress, StudentAchievement, Achievement
+from django.utils import timezone
 
 
 
@@ -119,13 +121,17 @@ class TeacherRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         return self.request.user.role == 'teacher'
 
-class TeacherDashboardView(LoginRequiredMixin, ListView):
-    model = Course
-    template_name = "course/teacher_dashboard.html"  # корректно, т.к. в course/templates/
-    context_object_name = "courses"
+class TeacherDashboardView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
+    template_name = "course/teacher_dashboard.html"
 
-    def get_queryset(self):
-        return Course.objects.filter(teacher=self.request.user)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        courses = Course.objects.filter(teacher=self.request.user)
+        progress_data = StudentProgress.objects.filter(course__in=courses).select_related("student", "course")
+
+        context["courses"] = courses
+        context["progress_data"] = progress_data
+        return context
     
 # Список курсов преподавателя
 class TeacherCourseListView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
@@ -219,6 +225,34 @@ class LessonDeleteView(LoginRequiredMixin, TeacherRequiredMixin, DeleteView):
 
     def get_success_url(self):
         return reverse_lazy('course:teacher_dashboard')
+
+@login_required
+def teacher_dashboard(request):
+    """Панель преподавателя — просмотр прогресса всех студентов по курсам"""
+    if not request.user.is_staff:
+        return render(request, "403.html", status=403)
+
+    courses = Course.objects.filter(teacher=request.user).prefetch_related("progress__student")
+
+    context = {
+        "courses": courses,
+    }
+    return render(request, "course/teacher_dashboard.html", context)
+
+
+@login_required
+def student_courses(request):
+    courses = request.user.courses.all()  # или другой способ связи с курсами
+    progress_records = StudentProgress.objects.filter(student=request.user).select_related("course")
+    achievements = StudentAchievement.objects.filter(student=request.user).select_related("achievement")
+
+    context = {
+        "courses": courses,
+        "progress_records": progress_records,
+        "achievements": achievements,
+    }
+    return render(request, "course/student_courses.html", context)
+
 
 @login_required
 def enroll_course(request, pk):
@@ -366,3 +400,49 @@ def get_hint(request, question_id):
         return JsonResponse({"hint": f"Ошибка при обращении к модели: {str(e)}"})
 
     return JsonResponse({"hint": hint})
+
+def update_student_progress(student, quiz, score):
+    course = quiz.lesson.course
+    lessons = course.lessons.all()
+
+    completed = 0
+    for lesson in lessons:
+        if lesson.quiz and lesson.quiz.questions.exists():
+            completed += 1
+
+    progress, _ = StudentProgress.objects.get_or_create(student=student, course=course)
+    progress.completed_lessons = completed
+    progress.total_lessons = lessons.count()
+    progress.score = (progress.score + score) / 2
+    progress.save()
+
+    check_achievements(student)
+
+def check_achievements(student):
+    from course.models import Achievement, StudentAchievement, StudentProgress
+
+    progresses = StudentProgress.objects.filter(student=student)
+
+    # 1. Первый урок
+    if progresses.filter(completed_lessons__gte=1).exists():
+        ach, _ = Achievement.objects.get_or_create(
+            name="Первый шаг",
+            defaults={"description": "Вы прошли свой первый урок!", "icon": "🌱"}
+        )
+        StudentAchievement.objects.get_or_create(student=student, achievement=ach)
+
+    # 2. 100% курс
+    if any(p.progress_percent() == 100 for p in progresses):
+        ach, _ = Achievement.objects.get_or_create(
+            name="Мастер курса",
+            defaults={"description": "Вы завершили курс полностью!", "icon": "🏆"}
+        )
+        StudentAchievement.objects.get_or_create(student=student, achievement=ach)
+
+    # 3. Средний балл > 90
+    if any(p.score >= 90 for p in progresses):
+        ach, _ = Achievement.objects.get_or_create(
+            name="Отличник",
+            defaults={"description": "Ваш средний балл выше 90%", "icon": "🎓"}
+        )
+        StudentAchievement.objects.get_or_create(student=student, achievement=ach)

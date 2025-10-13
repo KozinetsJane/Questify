@@ -3,8 +3,13 @@
 {% block content %}
 <h2>Панель преподавателя</h2>
 <p>Добро пожаловать, {{ user.username }}!</p>
-
-<a href="{% url 'course:course_add' %}" class="btn btn-success mb-3">➕ Создать новый курс</a>
+<!-- Кнопки -->
+<div class="d-flex gap-2 mb-4">
+  <a href="{% url 'course:course_add' %}" class="btn btn-success">➕ Создать новый курс</a>
+  <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#progressModal">
+    📊 Смотреть прогресс студентов
+  </button>
+</div>
 
 {% for course in courses %}
 <div class="card mb-3 shadow-sm">
@@ -38,4 +43,60 @@
 {% empty %}
 <p>У вас пока нет курсов.</p>
 {% endfor %}
+<!-- Модальное окно с прогрессом студентов -->
+<div class="modal fade" id="progressModal" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="progressModalLabel">📈 Прогресс студентов по курсам</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        {% if progress_data %}
+        <div class="table-responsive">
+          <table class="table align-middle table-striped">
+            <thead class="table-light">
+              <tr>
+                <th>Курс</th>
+                <th>Студент</th>
+                <th>Завершено уроков</th>
+                <th>Всего уроков</th>
+                <th>Оценка</th>
+                <th>Прогресс</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in progress_data %}
+              <tr>
+                <td>{{ record.course.title }}</td>
+                <td>{{ record.student.username }}</td>
+                <td>{{ record.completed_lessons }}</td>
+                <td>{{ record.total_lessons }}</td>
+                <td>{{ record.score }}</td>
+                <td style="width: 25%;">
+                  <div class="progress" style="height: 20px;">
+                    <div class="progress-bar 
+                      {% if record.progress_percent >= 80 %}bg-success
+                      {% elif record.progress_percent >= 50 %}bg-warning
+                      {% else %}bg-danger{% endif %}"
+                      style="width: {{ record.progress_percent }}%">
+                      {{ record.progress_percent }}%
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="text-muted">Пока нет данных о прогрессе студентов.</p>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

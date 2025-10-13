@@ -37,4 +37,5 @@ urlpatterns = [
     path('student/courses/', StudentCourseListView.as_view(), name='student_courses'),
     path('quiz/<int:quiz_id>/take/', take_quiz, name='take_quiz'),
     path("hint/<int:question_id>/", get_hint, name="get_hint"),
+    
 ]
