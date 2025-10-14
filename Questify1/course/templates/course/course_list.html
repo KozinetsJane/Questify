@@ -1,52 +1,70 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-5">
 
-  <!-- Форма поиска -->
-  <form method="get" action="" class="mb-4">
-    <div class="input-group">
+  <!-- 🔍 Поиск и сортировка -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <form method="get" action="" class="d-flex flex-grow-1 me-3">
       <input 
         type="text" 
         name="q" 
-        class="form-control" 
-        placeholder="Поиск по названию, преподавателю, категории или уровню..."
+        class="form-control me-2"
+        placeholder="Поиск по названию, преподавателю или категории..."
         value="{{ request.GET.q }}">
-      <button class="btn btn-primary" type="submit">🔍 Найти</button>
-    </div>
-  </form>
+      <button class="btn btn-primary" type="submit">Найти</button>
+    </form>
 
-  <!-- Список курсов -->
-  <div class="row">
+    <!-- ⚙️ Сортировка -->
+    <select id="sort-select" class="form-select w-auto">
+      <option value="">Сортировка</option>
+      <option value="price_asc">Цена ↑</option>
+      <option value="price_desc">Цена ↓</option>
+      <option value="level_asc">Уровень ↑</option>
+      <option value="level_desc">Уровень ↓</option>
+    </select>
+  </div>
+
+  <!-- 🎓 Список курсов -->
+  <div id="course-list" class="row">
     {% for course in courses %}
       <div class="col-md-4 mb-4">
-        <div class="card h-100 shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title">{{ course.title }}</h5>
-            <p class="card-text">
-              {{ course.description|truncatewords:20 }}
-            </p>
-            <p><strong>Цена:</strong> {{ course.price }} $</p>
-            <p><strong>Преподаватель:</strong> {{ course.teacher }}</p>
-            <p><strong>Уровень:</strong> {{ course.get_level_display }}</p>
-            <p><strong>Категория:</strong>
-                {% for cat in course.category.all %}
-                 {{ cat.name }}{% if not forloop.last %}, {% endif %}
-                {% empty %}
-                  Нет
-                {% endfor %}
-            </p> 
-            <a href="{% url 'course:course_detail' course.id %}" class="btn btn-outline-primary btn-sm">Подробнее</a>
+        <div class="card h-100 border-0 shadow-sm course-card">
+          {% if course.image %}
+            <img src="{{ course.image.url }}" class="card-img-top rounded-top" alt="{{ course.title }}" loading="lazy">
+          {% else %}
+            <img src="https://via.placeholder.com/600x300.png?text=Course+Image" class="card-img-top rounded-top" alt="Нет изображения" loading="lazy">
+          {% endif %}
+
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title fw-bold">{{ course.title }}</h5>
+            <p class="text-muted mb-2">{{ course.description|truncatewords:20 }}</p>
+
+            <div class="mb-2">
+              <span class="badge bg-primary-subtle text-primary">Уровень: {{ course.get_level_display }}</span>
+              {% for cat in course.category.all %}
+                <span class="badge bg-success-subtle text-success">{{ cat.name }}</span>
+              {% empty %}
+                <span class="badge bg-secondary">Без категории</span>
+              {% endfor %}
+            </div>
+
+            <p class="mb-1"><strong>Преподаватель:</strong> {{ course.teacher }}</p>
+            <p class="mb-2"><strong>Цена:</strong> <span class="text-success fw-semibold">{{ course.price }} $</span></p>
+
+            <a href="{% url 'course:course_detail' course.id %}" class="btn btn-outline-primary mt-auto">Подробнее →</a>
           </div>
         </div>
       </div>
     {% empty %}
-      <p>Курсы не найдены.</p>
+      <div class="col-12 text-center py-5">
+        <h5 class="text-muted">Курсы не найдены 😔</h5>
+      </div>
     {% endfor %}
   </div>
 
-</div>
-<nav aria-label="Навигация по страницам">
+  <!-- 🔽 Пагинация -->
+  {% if page_obj.has_other_pages %}
+  <nav aria-label="Навигация по страницам" class="mt-5">
     <ul class="pagination justify-content-center">
       {% if page_obj.has_previous %}
         <li class="page-item">
@@ -73,6 +91,43 @@
       {% endif %}
     </ul>
   </nav>
-
+  {% endif %}
 </div>
+
+<!-- 🌈 Стили и эффекты -->
+<style>
+.course-card {
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+.course-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+.bg-primary-subtle { background-color: #e8f0ff; }
+.bg-success-subtle { background-color: #e6f9f0; }
+</style>
+
+<!-- ⚡ JS сортировка без перезагрузки -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const sortSelect = document.getElementById("sort-select");
+  const courseList = document.getElementById("course-list");
+
+  sortSelect.addEventListener("change", async function() {
+    const sortValue = this.value;
+    const searchQuery = new URLSearchParams(window.location.search).get("q") || "";
+
+    const response = await fetch(`?q=${encodeURIComponent(searchQuery)}&sort=${sortValue}`, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    });
+    const html = await response.text();
+
+    // Заменяем только блок курсов
+    const parser = new DOMParser();
+    const newDoc = parser.parseFromString(html, "text/html");
+    const newCourses = newDoc.querySelector("#course-list");
+    courseList.innerHTML = newCourses.innerHTML;
+  });
+});
+</script>
 {% endblock %}

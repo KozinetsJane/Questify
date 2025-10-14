@@ -446,3 +446,30 @@ def check_achievements(student):
             defaults={"description": "Ваш средний балл выше 90%", "icon": "🎓"}
         )
         StudentAchievement.objects.get_or_create(student=student, achievement=ach)
+
+def course_list(request):
+    q = request.GET.get("q", "")
+    sort = request.GET.get("sort", "")
+
+    courses = Course.objects.all()
+
+    if q:
+        courses = courses.filter(title__icontains=q)
+
+    # ⚙️ Сортировка
+    if sort == "price_asc":
+        courses = courses.order_by("price")
+    elif sort == "price_desc":
+        courses = courses.order_by("-price")
+    elif sort == "level_asc":
+        courses = courses.order_by("level")
+    elif sort == "level_desc":
+        courses = courses.order_by("-level")
+
+    context = {"courses": courses}
+
+    # ⚡ Возврат только части HTML, если это AJAX
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return render(request, "course/course_list.html", context)
+
+    return render(request, "course/course_list.html", context)
