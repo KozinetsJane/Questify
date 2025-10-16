@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from decouple import config
 import os
+import logging
+
 GPT_CHAT_API_KEY = config("GPT_CHAT_API_KEY", default="")
 
 
@@ -28,6 +30,20 @@ SECRET_KEY = 'django-insecure-3z6g+me36y!sxgxiti6n9m5k$m5xz79o#9mq)u#+rtx)#rbw!)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',  # INFO или DEBUG
+    },
+}
 
 ALLOWED_HOSTS = []
 

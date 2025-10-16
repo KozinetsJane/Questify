@@ -40,26 +40,28 @@
       </div>
     {% endfor %}
   </div>
-  <!-- 🌐 AI-Чат -->
-  <button id="chatToggle" class="btn btn-primary position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg" style="width: 60px; height: 60px;">
-  💬
+
+  <!-- 🌐 Кнопка и окно AI-чата -->
+  <button id="chatToggle" class="btn btn-primary rounded-circle shadow-lg" 
+          style="width: 60px; height: 60px; position: fixed; bottom: 20px; right: 20px; z-index: 2000; cursor: pointer;">
+    💬
   </button>
 
-  <div id="chatBox" class="position-fixed bottom-0 end-0 m-4 bg-light border rounded shadow-lg p-3" style="width: 360px; height: 500px; display: none; flex-direction: column; border-radius: 20px;">
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <div class="d-flex align-items-center">
-      <img src="{% static 'img/ai_avatar.png' %}" width="32" height="32" class="me-2 rounded-circle" alt="AI">
-      <strong>AI-помощник</strong>
+  <div id="chatBox" class="bg-light border rounded shadow-lg p-3" 
+       style="width: 480px; height: 550px; display: none; flex-direction: column; 
+              position: fixed; bottom: 100px; right: 20px; border-radius: 20px; z-index: 2000; cursor: move;">
+    <div id="chatHeader" class="d-flex justify-content-between align-items-center mb-2">
+      <div class="d-flex align-items-center">
+        <img src="{% static 'img/ai_avatar.png' %}" width="32" height="32" class="me-2 rounded-circle" alt="AI">
+        <strong>AI-помощник</strong>
+      </div>
+      <button id="chatClose" class="btn btn-sm btn-outline-secondary rounded-circle">✖</button>
     </div>
-    <button id="chatClose" class="btn btn-sm btn-outline-secondary rounded-circle">✖</button>
-  </div>
-
-  <div id="chatMessages" class="flex-grow-1 overflow-auto border p-2 mb-2 rounded" style="background-color: #fff; scroll-behavior: smooth;"></div>
-
-  <form id="chatForm" class="d-flex">
-    <input id="chatInput" class="form-control me-2 rounded-pill" placeholder="Спросите о курсах..." autocomplete="off">
-    <button class="btn btn-primary rounded-pill">→</button>
-  </form>
+    <div id="chatMessages" class="flex-grow-1 overflow-auto border p-2 mb-2 rounded" style="background-color: #fff;"></div>
+    <form id="chatForm" class="d-flex">
+      <input id="chatInput" class="form-control me-2 rounded-pill" placeholder="Спросите о курсах..." autocomplete="off">
+      <button class="btn btn-primary rounded-pill">→</button>
+    </form>
   </div>
 
   <!-- 🔽 Пагинация -->
@@ -67,9 +69,7 @@
   <nav aria-label="Навигация по страницам" class="mt-5">
     <ul class="pagination justify-content-center">
       {% if page_obj.has_previous %}
-        <li class="page-item">
-          <a class="page-link" href="?q={{ request.GET.q }}&page={{ page_obj.previous_page_number }}">← Предыдущая</a>
-        </li>
+        <li class="page-item"><a class="page-link" href="?q={{ request.GET.q }}&page={{ page_obj.previous_page_number }}">← Предыдущая</a></li>
       {% else %}
         <li class="page-item disabled"><span class="page-link">← Предыдущая</span></li>
       {% endif %}
@@ -83,9 +83,7 @@
       {% endfor %}
 
       {% if page_obj.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="?q={{ request.GET.q }}&page={{ page_obj.next_page_number }}">Следующая →</a>
-        </li>
+        <li class="page-item"><a class="page-link" href="?q={{ request.GET.q }}&page={{ page_obj.next_page_number }}">Следующая →</a></li>
       {% else %}
         <li class="page-item disabled"><span class="page-link">Следующая →</span></li>
       {% endif %}
@@ -94,85 +92,104 @@
   {% endif %}
 </div>
 
-<!-- 🌈 Стили и эффекты -->
+<!-- 🌈 Стили -->
 <style>
-.course-card {
-  transition: transform 0.2s ease, box-shadow 0.3s ease;
-}
-.course-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-}
+.course-card { transition: transform 0.2s ease, box-shadow 0.3s ease; }
+.course-card:hover { transform: translateY(-6px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
 .bg-primary-subtle { background-color: #e8f0ff; }
 .bg-success-subtle { background-color: #e6f9f0; }
- /* Анимация сообщений */
-.chat-msg {
-  opacity: 0;
-  transform: translateY(10px);
-  animation: fadeInUp 0.4s ease forwards;
-}
-@keyframes fadeInUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    }
-}
-.chat-bubble {
-  padding: 10px 14px;
-  border-radius: 20px;
-  margin: 6px 0;
-  max-width: 80%;
-}
-.chat-user {
-  background-color: #d1e7dd;
-  align-self: flex-end;
-}
-.chat-ai {
-  background-color: #f1f1f1;
-  align-self: flex-start;
-}
+
+.chat-msg { opacity: 0; transform: translateY(10px); animation: fadeInUp 0.4s ease forwards; }
+@keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+.chat-bubble { padding: 10px 14px; border-radius: 20px; margin: 6px 0; max-width: 80%; }
+.chat-user { background-color: #d1e7dd; align-self: flex-end; }
+.chat-ai { background-color: #f1f1f1; align-self: flex-start; }
+.ai-link { color: #007bff; text-decoration: none; font-weight: 500; }
+.ai-link:hover { text-decoration: underline; }
 </style>
 
-
+<!-- 🌟 Скрипт чата -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
-  // 🌐 Логика AI-чата
-  const chatToggle = document.getElementById("chatToggle");
-  const chatBox = document.getElementById("chatBox");
-  const chatClose = document.getElementById("chatClose");
-  const chatForm = document.getElementById("chatForm");
-  const chatInput = document.getElementById("chatInput");
-  const chatMessages = document.getElementById("chatMessages");
+document.addEventListener("DOMContentLoaded", () => {
+    const chatToggle = document.getElementById("chatToggle");
+    const chatBox = document.getElementById("chatBox");
+    const chatClose = document.getElementById("chatClose");
+    const chatForm = document.getElementById("chatForm");
+    const chatInput = document.getElementById("chatInput");
+    const chatMessages = document.getElementById("chatMessages");
+    const chatHeader = document.getElementById("chatHeader");
+    const AI_URL = "{% url 'course:ai_assistant' %}";
 
-  chatToggle.onclick = () => chatBox.style.display = "flex";
-  chatClose.onclick = () => chatBox.style.display = "none";
+    // Открытие/закрытие чата
+    chatToggle.addEventListener("click", () => chatBox.style.display = "flex");
+    chatClose.addEventListener("click", () => chatBox.style.display = "none");
 
-  chatForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const message = chatInput.value.trim();
-    if (!message) return;
-
-    const userMsg = document.createElement("div");
-    userMsg.classList.add("chat-bubble", "chat-user", "chat-msg");
-    userMsg.innerHTML = `<strong>Вы:</strong> ${message}`;
-    chatMessages.appendChild(userMsg);
-    chatInput.value = "";
-
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    // Отправляем сообщение на сервер
-    const res = await fetch("{% url 'course:ai_assistant' %}", {
-      method: "POST",
-      headers: {"X-CSRFToken": "{{ csrf_token }}"},
-      body: new URLSearchParams({message})
+    // Перетаскивание окна
+    let isDragging = false, offsetX = 0, offsetY = 0;
+    chatHeader.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        const rect = chatBox.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        document.body.style.userSelect = "none";
+    });
+    document.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        chatBox.style.left = (e.clientX - offsetX) + "px";
+        chatBox.style.top = (e.clientY - offsetY) + "px";
+    });
+    document.addEventListener("mouseup", () => {
+        isDragging = false;
+        document.body.style.userSelect = "";
     });
 
-    const data = await res.json();
-    const aiMsg = document.createElement("div");
-    aiMsg.classList.add("chat-bubble", "chat-ai", "chat-msg");
-    aiMsg.innerHTML = `<img src="{% static 'img/ai_avatar.png' %}" width="24" height="24" class="me-2 rounded-circle"> <strong>AI:</strong> ${data.reply || "Ошибка: " + data.error}`;
-    chatMessages.appendChild(aiMsg);
+    // Отправка сообщений
+    chatForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const message = chatInput.value.trim();
+        if (!message) return;
 
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  });
+        const userMsg = document.createElement("div");
+        userMsg.classList.add("chat-bubble", "chat-user", "chat-msg");
+        userMsg.innerHTML = `<strong>Вы:</strong> ${message}`;
+        chatMessages.appendChild(userMsg);
+        chatInput.value = "";
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+            const res = await fetch(AI_URL, {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: new URLSearchParams({ message })
+            });
+
+            const data = await res.json();
+            let reply = marked.parse(data.reply || "Ошибка: нет ответа");
+
+          // Добавляем ссылку на курс отдельно
+            if (data.link) {
+                reply += `<div class="mt-2"><a href="${data.link}" target="_blank" class="ai-link">Перейти к курсу</a></div>`;
+            }
+
+            const aiMsg = document.createElement("div");
+            aiMsg.classList.add("chat-bubble", "chat-ai", "chat-msg");
+            aiMsg.innerHTML = `<img src="{% static 'img/ai_avatar.png' %}" width="24" height="24" class="me-2 rounded-circle"> <strong>AI:</strong> ${reply}`;
+            chatMessages.appendChild(aiMsg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        } catch (err) {
+            const aiMsg = document.createElement("div");
+            aiMsg.classList.add("chat-bubble", "chat-ai", "chat-msg");
+            aiMsg.innerHTML = `<strong>AI:</strong> Ошибка сервера`;
+            chatMessages.appendChild(aiMsg);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            console.error("Ошибка запроса к AI:", err);
+        }
+    });
+});
 </script>
 {% endblock %}

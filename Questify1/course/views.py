@@ -10,21 +10,24 @@ from django.conf import settings
 from Questify1.settings import GPT_CHAT_API_KEY
 from course.models import Lesson, Course, Quiz, Question
 from course.models.quiz import Question, Quiz
-
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.urls import reverse_lazy
+from django.urls import reverse
 from .forms import CourseForm
 from .forms import LessonForm
 from .utils import generate_quiz_questions, parse_quiz_text
 import requests
-import os
+import os, re
 from django.http import JsonResponse, Http404
 from dotenv import load_dotenv
 from course.models import StudentProgress, StudentAchievement, Achievement
 from django.utils import timezone
+from django.http import JsonResponse
+import requests
+import json
+import logging
 
-
+logger = logging.getLogger(__name__)
 
 class CourseListView(ListView):
     model = Course
@@ -478,67 +481,92 @@ def course_list(request):
 
 @csrf_exempt
 def ai_assistant(request):
-    import json
-
-    if request.method != "POST":
-        return JsonResponse({"error": "Метод не поддерживается"}, status=405)
-
-    # поддерживаем form и JSON
-    if request.content_type == "application/json":
-        try:
-            payload_data = json.loads(request.body.decode("utf-8") or "{}")
-        except Exception:
-            return JsonResponse({"error": "Неверный JSON"}, status=400)
-        user_message = payload_data.get("message", "").strip()
-    else:
-        user_message = (request.POST.get("message", "") or "").strip()
-
-    if not user_message:
-        return JsonResponse({"error": "Сообщение пустое"}, status=400)
-
-    # собираем информацию о курсах безопасно (без дублирования из-за M2M)
-    qs = Course.objects.select_related("teacher").prefetch_related("category").all()[:10]
-    info_lines = []
-    for c in qs:
-        teacher_name = getattr(c.teacher, "username", str(c.teacher))
-        cats = ", ".join([cat.name for cat in c.category.all()]) or "Без категории"
-        level_display = getattr(c, "get_level_display", lambda: c.level)()
-        price = c.price if c.price is not None else "—"
-        info_lines.append(f"- {c.title} (уровень: {level_display}, цена: {price}$, преподаватель: {teacher_name}, категории: {cats})")
-    course_info = "\n".join(info_lines)
-
-    system_prompt = (
-        "Ты — AI помощник по выбору курсов. "
-        "Вот список доступных курсов:\n"
-        f"{course_info}\n\n"
-        "Помоги пользователю выбрать лучший курс по его запросу. "
-        "Объясняй выбор коротко и дружелюбно."
-    )
-
-    # используем глобальные переменные API_URL / API_KEY, если они заданы выше в файле
-    url = globals().get("API_URL") or getattr(settings, "GPT_CHAT_API_URL", None)
-    key = globals().get("API_KEY") or getattr(settings, "GPT_CHAT_API_KEY", None)
-
-    if not url or not key:
-        return JsonResponse({"error": "API URL или API KEY не настроены"}, status=500)
-
-    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-    payload = {
-        "model": "turbo",
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
-        "temperature": 0.7,
-    }
-
+    logger.info("ai_assistant вызван")
     try:
+        if request.method != "POST":
+            logger.warning("Метод не поддерживается: %s", request.method)
+            return JsonResponse({"reply": "Метод не поддерживается"}, status=405)
+
+        # Получаем сообщение пользователя
+        if request.content_type == "application/json":
+            try:
+                payload_data = json.loads(request.body.decode("utf-8") or "{}")
+                user_message = payload_data.get("message", "").strip()
+            except Exception:
+                logger.exception("Неверный JSON")
+                return JsonResponse({"reply": "Неверный JSON"}, status=400)
+        else:
+            user_message = (request.POST.get("message", "") or "").strip()
+
+        if not user_message:
+            logger.warning("Сообщение пустое")
+            return JsonResponse({"reply": "Сообщение пустое"}, status=400)
+
+        logger.info("Сообщение пользователя: %s", user_message)
+
+        # Берём все курсы для подсказки GPT
+        qs = Course.objects.select_related("teacher").prefetch_related("category").all()
+        logger.info("Найдено курсов: %d", qs.count())
+
+        # Составляем краткую инфу для GPT
+        courses_brief = []
+        for c in qs:
+            teacher_name = getattr(c.teacher, "username", str(c.teacher))
+            cats = ", ".join([cat.name for cat in c.category.all()]) or "Без категории"
+            level_display = getattr(c, "get_level_display", lambda: c.level)()
+            price = c.price if c.price is not None else "—"
+            courses_brief.append(f"{c.title} ({level_display}, {price}$, преподаватель: {teacher_name}, категории: {cats})")
+
+        system_prompt = (
+            "Ты — AI помощник по выбору курсов.\n"
+            "Вот список доступных курсов (только для справки, не выводи их все):\n"
+            + "\n".join(courses_brief) +
+            "\nПомоги пользователю выбрать лучший курс по его запросу. "
+            "Выводи только один рекомендованный курс. "
+            "В конце дай только название курса, а ссылку оставь отдельно."
+        )
+
+        url = os.getenv("GPT_CHAT_API_URL")
+        key = os.getenv("GPT_CHAT_API_KEY")
+        if not url or not key:
+            logger.error("GPT API URL или KEY не настроены")
+            return JsonResponse({"reply": "API URL или API KEY не настроены"}, status=500)
+
+        headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+        payload = {
+            "model": "turbo",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "temperature": 0.7,
+        }
+
+        logger.info("Отправка запроса к GPT API")
         resp = requests.post(url, headers=headers, json=payload, timeout=30)
         resp.raise_for_status()
         data = resp.json()
-        ai_reply = data.get("choices", [{}])[0].get("message", {}).get("content", "") or ""
-        return JsonResponse({"reply": ai_reply})
-    except requests.RequestException as e:
-        return JsonResponse({"error": f"Ошибка запроса к модели: {str(e)}"}, status=502)
+        ai_reply = data.get("choices", [{}])[0].get("message", {}).get("content", "") or "Нет ответа от модели"
+        # ❌ Удаляем строки, начинающиеся с "Ссылка: "
+        ai_reply = re.sub(r"Ссылка:.*", "", ai_reply).strip()
+        logger.info("AI ответ получен: %s", ai_reply)
+
+        # Ищем курс по названию в ответе GPT
+        recommended_course = None
+        for c in qs:
+            if c.title.lower() in ai_reply.lower():
+                recommended_course = c
+                break
+
+        link = ""
+        if recommended_course:
+            link = request.build_absolute_uri(reverse("course:course_detail", kwargs={"pk": recommended_course.pk}))
+
+        return JsonResponse({
+            "reply": ai_reply,
+            "link": link
+        })
+
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.exception("Ошибка в ai_assistant")
+        return JsonResponse({"reply": f"Произошла ошибка на сервере: {e}"}, status=500)
