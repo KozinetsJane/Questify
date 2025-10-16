@@ -1,5 +1,7 @@
 from django.urls import path
-from .views import CourseListView, CourseDetailView, LessonDetailView, enroll_course
+from django.conf import settings
+from django.conf.urls.static import static
+from .views import CourseListView, CourseDetailView, LessonDetailView
 from .views import (
     TeacherCourseListView, CourseCreateView, CourseUpdateView, CourseDeleteView
 )
@@ -8,7 +10,7 @@ from .views import (
 )
 from .views import TeacherDashboardView
 from .views import generate_quiz, enroll_course, take_quiz, get_hint
-from .views import StudentCourseListView
+from .views import StudentCourseListView, ai_assistant
 
 
 app_name = 'course'  # <- обязательно!
@@ -25,7 +27,6 @@ urlpatterns = [
     path('teacher/course/<int:pk>/edit/', CourseUpdateView.as_view(), name='course_edit'),
     path('teacher/course/<int:pk>/delete/', CourseDeleteView.as_view(), name='course_delete'),
     path('course/<int:pk>/enroll/', enroll_course, name='enroll_course'),
-    
 
     # Управление уроками
     path('teacher/course/<int:course_pk>/lesson/add/', LessonCreateView.as_view(), name='lesson_add'),
@@ -37,5 +38,5 @@ urlpatterns = [
     path('student/courses/', StudentCourseListView.as_view(), name='student_courses'),
     path('quiz/<int:quiz_id>/take/', take_quiz, name='take_quiz'),
     path("hint/<int:question_id>/", get_hint, name="get_hint"),
-    
+    path("ai-assistant/", ai_assistant, name="ai_assistant"),
 ]

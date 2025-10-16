@@ -1,29 +1,8 @@
 {% extends "base.html" %}
+{% load static %}
+
 {% block content %}
 <div class="container mt-5">
-
-  <!-- 🔍 Поиск и сортировка -->
-  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-    <form method="get" action="" class="d-flex flex-grow-1 me-3">
-      <input 
-        type="text" 
-        name="q" 
-        class="form-control me-2"
-        placeholder="Поиск по названию, преподавателю или категории..."
-        value="{{ request.GET.q }}">
-      <button class="btn btn-primary" type="submit">Найти</button>
-    </form>
-
-    <!-- ⚙️ Сортировка -->
-    <select id="sort-select" class="form-select w-auto">
-      <option value="">Сортировка</option>
-      <option value="price_asc">Цена ↑</option>
-      <option value="price_desc">Цена ↓</option>
-      <option value="level_asc">Уровень ↑</option>
-      <option value="level_desc">Уровень ↓</option>
-    </select>
-  </div>
-
   <!-- 🎓 Список курсов -->
   <div id="course-list" class="row">
     {% for course in courses %}
@@ -32,7 +11,7 @@
           {% if course.image %}
             <img src="{{ course.image.url }}" class="card-img-top rounded-top" alt="{{ course.title }}" loading="lazy">
           {% else %}
-            <img src="https://via.placeholder.com/600x300.png?text=Course+Image" class="card-img-top rounded-top" alt="Нет изображения" loading="lazy">
+            <img src="{% static 'img/default_course.png' %}" class="card-img-top rounded-top" alt="Нет изображения" loading="lazy">
           {% endif %}
 
           <div class="card-body d-flex flex-column">
@@ -60,6 +39,27 @@
         <h5 class="text-muted">Курсы не найдены 😔</h5>
       </div>
     {% endfor %}
+  </div>
+  <!-- 🌐 AI-Чат -->
+  <button id="chatToggle" class="btn btn-primary position-fixed bottom-0 end-0 m-4 rounded-circle shadow-lg" style="width: 60px; height: 60px;">
+  💬
+  </button>
+
+  <div id="chatBox" class="position-fixed bottom-0 end-0 m-4 bg-light border rounded shadow-lg p-3" style="width: 360px; height: 500px; display: none; flex-direction: column; border-radius: 20px;">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex align-items-center">
+      <img src="{% static 'img/ai_avatar.png' %}" width="32" height="32" class="me-2 rounded-circle" alt="AI">
+      <strong>AI-помощник</strong>
+    </div>
+    <button id="chatClose" class="btn btn-sm btn-outline-secondary rounded-circle">✖</button>
+  </div>
+
+  <div id="chatMessages" class="flex-grow-1 overflow-auto border p-2 mb-2 rounded" style="background-color: #fff; scroll-behavior: smooth;"></div>
+
+  <form id="chatForm" class="d-flex">
+    <input id="chatInput" class="form-control me-2 rounded-pill" placeholder="Спросите о курсах..." autocomplete="off">
+    <button class="btn btn-primary rounded-pill">→</button>
+  </form>
   </div>
 
   <!-- 🔽 Пагинация -->
@@ -105,29 +105,74 @@
 }
 .bg-primary-subtle { background-color: #e8f0ff; }
 .bg-success-subtle { background-color: #e6f9f0; }
+ /* Анимация сообщений */
+.chat-msg {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.4s ease forwards;
+}
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    }
+}
+.chat-bubble {
+  padding: 10px 14px;
+  border-radius: 20px;
+  margin: 6px 0;
+  max-width: 80%;
+}
+.chat-user {
+  background-color: #d1e7dd;
+  align-self: flex-end;
+}
+.chat-ai {
+  background-color: #f1f1f1;
+  align-self: flex-start;
+}
 </style>
 
-<!-- ⚡ JS сортировка без перезагрузки -->
+
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  const sortSelect = document.getElementById("sort-select");
-  const courseList = document.getElementById("course-list");
+  // 🌐 Логика AI-чата
+  const chatToggle = document.getElementById("chatToggle");
+  const chatBox = document.getElementById("chatBox");
+  const chatClose = document.getElementById("chatClose");
+  const chatForm = document.getElementById("chatForm");
+  const chatInput = document.getElementById("chatInput");
+  const chatMessages = document.getElementById("chatMessages");
 
-  sortSelect.addEventListener("change", async function() {
-    const sortValue = this.value;
-    const searchQuery = new URLSearchParams(window.location.search).get("q") || "";
+  chatToggle.onclick = () => chatBox.style.display = "flex";
+  chatClose.onclick = () => chatBox.style.display = "none";
 
-    const response = await fetch(`?q=${encodeURIComponent(searchQuery)}&sort=${sortValue}`, {
-      headers: { "X-Requested-With": "XMLHttpRequest" }
+  chatForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const message = chatInput.value.trim();
+    if (!message) return;
+
+    const userMsg = document.createElement("div");
+    userMsg.classList.add("chat-bubble", "chat-user", "chat-msg");
+    userMsg.innerHTML = `<strong>Вы:</strong> ${message}`;
+    chatMessages.appendChild(userMsg);
+    chatInput.value = "";
+
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    // Отправляем сообщение на сервер
+    const res = await fetch("{% url 'course:ai_assistant' %}", {
+      method: "POST",
+      headers: {"X-CSRFToken": "{{ csrf_token }}"},
+      body: new URLSearchParams({message})
     });
-    const html = await response.text();
 
-    // Заменяем только блок курсов
-    const parser = new DOMParser();
-    const newDoc = parser.parseFromString(html, "text/html");
-    const newCourses = newDoc.querySelector("#course-list");
-    courseList.innerHTML = newCourses.innerHTML;
+    const data = await res.json();
+    const aiMsg = document.createElement("div");
+    aiMsg.classList.add("chat-bubble", "chat-ai", "chat-msg");
+    aiMsg.innerHTML = `<img src="{% static 'img/ai_avatar.png' %}" width="24" height="24" class="me-2 rounded-circle"> <strong>AI:</strong> ${data.reply || "Ошибка: " + data.error}`;
+    chatMessages.appendChild(aiMsg);
+
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   });
-});
 </script>
 {% endblock %}

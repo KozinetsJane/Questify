@@ -5,6 +5,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponseForbidden
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import DetailView
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+from Questify1.settings import GPT_CHAT_API_KEY
 from course.models import Lesson, Course, Quiz, Question
 from course.models.quiz import Question, Quiz
 
@@ -15,7 +18,6 @@ from .forms import CourseForm
 from .forms import LessonForm
 from .utils import generate_quiz_questions, parse_quiz_text
 import requests
-from django.http import JsonResponse
 import os
 from django.http import JsonResponse, Http404
 from dotenv import load_dotenv
@@ -473,3 +475,70 @@ def course_list(request):
         return render(request, "course/course_list.html", context)
 
     return render(request, "course/course_list.html", context)
+
+@csrf_exempt
+def ai_assistant(request):
+    import json
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Метод не поддерживается"}, status=405)
+
+    # поддерживаем form и JSON
+    if request.content_type == "application/json":
+        try:
+            payload_data = json.loads(request.body.decode("utf-8") or "{}")
+        except Exception:
+            return JsonResponse({"error": "Неверный JSON"}, status=400)
+        user_message = payload_data.get("message", "").strip()
+    else:
+        user_message = (request.POST.get("message", "") or "").strip()
+
+    if not user_message:
+        return JsonResponse({"error": "Сообщение пустое"}, status=400)
+
+    # собираем информацию о курсах безопасно (без дублирования из-за M2M)
+    qs = Course.objects.select_related("teacher").prefetch_related("category").all()[:10]
+    info_lines = []
+    for c in qs:
+        teacher_name = getattr(c.teacher, "username", str(c.teacher))
+        cats = ", ".join([cat.name for cat in c.category.all()]) or "Без категории"
+        level_display = getattr(c, "get_level_display", lambda: c.level)()
+        price = c.price if c.price is not None else "—"
+        info_lines.append(f"- {c.title} (уровень: {level_display}, цена: {price}$, преподаватель: {teacher_name}, категории: {cats})")
+    course_info = "\n".join(info_lines)
+
+    system_prompt = (
+        "Ты — AI помощник по выбору курсов. "
+        "Вот список доступных курсов:\n"
+        f"{course_info}\n\n"
+        "Помоги пользователю выбрать лучший курс по его запросу. "
+        "Объясняй выбор коротко и дружелюбно."
+    )
+
+    # используем глобальные переменные API_URL / API_KEY, если они заданы выше в файле
+    url = globals().get("API_URL") or getattr(settings, "GPT_CHAT_API_URL", None)
+    key = globals().get("API_KEY") or getattr(settings, "GPT_CHAT_API_KEY", None)
+
+    if not url or not key:
+        return JsonResponse({"error": "API URL или API KEY не настроены"}, status=500)
+
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    payload = {
+        "model": "turbo",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ],
+        "temperature": 0.7,
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        ai_reply = data.get("choices", [{}])[0].get("message", {}).get("content", "") or ""
+        return JsonResponse({"reply": ai_reply})
+    except requests.RequestException as e:
+        return JsonResponse({"error": f"Ошибка запроса к модели: {str(e)}"}, status=502)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

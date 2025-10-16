@@ -28,6 +28,7 @@ class Course(models.Model):
     published = models.DateTimeField(db_index=True, verbose_name="Опубликовано", default=timezone.now)
     level = models.SmallIntegerField("Уровень сложности", choices=LevelChoices.choices, default=LevelChoices.BEGINNER)
     outcome = models.TextField(blank=True, null=True, help_text="Что студент сможет после прохождения курса")
+    image = models.ImageField(upload_to="course_images/", blank=True, null=True)
     
     teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, limit_choices_to={'role': 'teacher'}, default=1)
     category = models.ManyToManyField(Category, verbose_name="Категория", blank=True)
