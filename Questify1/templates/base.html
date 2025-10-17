@@ -78,7 +78,7 @@
 
         {% if user.is_authenticated %}
           <li class="nav-item">
-            <span class="navbar-text me-3">Привет, {{ user.get_full_name|default:user.username }}</span>
+            <span class="navbar-text me-3">Привет, {{ user.username }}</span>
           </li>
           <li class="nav-item">
             <form method="post" action="{% url 'logout' %}" style="display:inline;">

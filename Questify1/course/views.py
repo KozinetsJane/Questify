@@ -12,7 +12,7 @@ from course.models import Lesson, Course, Quiz, Question
 from course.models.quiz import Question, Quiz
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from .forms import CourseForm
 from .forms import LessonForm
 from .utils import generate_quiz_questions, parse_quiz_text
@@ -127,17 +127,24 @@ class TeacherRequiredMixin(UserPassesTestMixin):
         return self.request.user.role == 'teacher'
 
 class TeacherDashboardView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
+    model = Course
     template_name = "course/teacher_dashboard.html"
+    context_object_name = "courses"
+
+    def get_queryset(self):
+        # Показываем только курсы текущего преподавателя
+        return Course.objects.filter(teacher=self.request.user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        courses = Course.objects.filter(teacher=self.request.user)
+        courses = self.get_queryset()
         progress_data = StudentProgress.objects.filter(course__in=courses).select_related("student", "course")
 
         context["courses"] = courses
         context["progress_data"] = progress_data
         return context
-    
+
+
 # Список курсов преподавателя
 class TeacherCourseListView(LoginRequiredMixin, TeacherRequiredMixin, ListView):
     model = Course
